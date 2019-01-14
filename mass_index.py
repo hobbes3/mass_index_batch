@@ -6,6 +6,7 @@ import time
 import sys
 import glob
 import csv
+import signal
 import logging
 import logging.handlers
 from tqdm import tqdm
@@ -14,8 +15,35 @@ from shutil import copy2
 
 from settings import *
 
+def signal_handler(sig, frame):
+    logger.warning("SIGINT (ctrl-c) detected!")
+    if data:
+        save_csv()
+    logger.info("CANCELLED. Total elapsed seconds: {}.".format(time.time() - start_time))
+    sys.exit("Script cancelled. See logs at {}.".format(LOG_PATH))
+
+def load_csv():
+    logger.info("Loading file list from {}.".format(SAVED_FILE_LIST_PATH))
+    with open(SAVED_FILE_LIST_PATH) as csv_file:
+        reader = csv.DictReader(csv_file)
+        for r in reader:
+            data.append(r)
+    
+    logger.info("File list loaded (length={}).".format(len(data)))
+
+def save_csv():
+    logger.info("Saving remaining file list (length={}) as {}.".format(len(data), SAVED_FILE_LIST_PATH))
+    with open(SAVED_FILE_LIST_PATH, "w") as csv_file:
+        fields = ["file", "dst"]
+        writer = csv.DictWriter(csv_file, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(data)
+    csv_file.close()
+
 if __name__ == "__main__":
     start_time = time.time()
+
+    signal.signal(signal.SIGINT, signal_handler)
 
     setting_file = Path(os.path.dirname(os.path.realpath(__file__)) + "/settings.py")
     
@@ -28,7 +56,7 @@ if __name__ == "__main__":
     handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)-7s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
     logger.addHandler(handler)
 
-    print("Log file at {}".format(LOG_PATH))
+    print("Log file at {}.".format(LOG_PATH))
 
     logger.info("===START OF SCRIPT===")
     logger.info("From settings.py: SLEEP={}, LIMIT={}, len(DATA)={}.".format(SLEEP, LIMIT, len(DATA)))
@@ -36,12 +64,8 @@ if __name__ == "__main__":
     data = []
 
     if os.path.exists(SAVED_FILE_LIST_PATH):
-        logger.info("Saved file list found! Reading {}.".format(SAVED_FILE_LIST_PATH))
-	
-        with open(SAVED_FILE_LIST_PATH) as csv_file:
-            reader = csv.DictReader(csv_file)
-            for r in reader:
-                data.append(r)
+        load_csv()
+        print("Loaded saved file list at {}.".format(SAVED_FILE_LIST_PATH))
 
     else:
         logger.info("Saved file list not found. Reading settings.py.")
@@ -61,8 +85,9 @@ if __name__ == "__main__":
             ])
 
     total = len(data)
-    logger.info("Total {} file(s).".format(total))
+    logger.info("File list created. Total of {} file(s).".format(total))
     
+    print("Indexing files...")
     pbar = tqdm(total=total)
 
     count = 0
@@ -79,7 +104,7 @@ if __name__ == "__main__":
 
         diff = LIMIT - total_files
         
-        logger.info("{}: Total number of files found: {}.".format(count, total_files))
+        logger.info("{}: Total of {} file(s) found.".format(count, total_files))
 
         if diff > 0:
             for i in range(diff):
@@ -96,15 +121,8 @@ if __name__ == "__main__":
             logger.debug("{}: LIMIT={} reached. Retry attempt #{}.".format(count, LIMIT, count_retries))
     
         if count_retries > len(SLEEP):
-            logger.error("{}: No more retry attempts left. Saving remaining file list (length={}) to {}. ".format(count, len(data), SAVED_FILE_LIST_PATH))
-            
-            with open(SAVED_FILE_LIST_PATH, "w") as csv_file:
-                fields = ["file", "dst"]
-                writer = csv.DictWriter(csv_file, fieldnames=fields)
-                writer.writeheader()
-                writer.writerows(data)
-            csv_file.close()
-
+            logger.error("{}: No more retry attempts left.".format(count))
+            save_csv()
             logger.info("INCOMPLETE. Total elapsed seconds: {}.".format(time.time() - start_time))
             sys.exit("No more retry attempts left. See logs at {}.".format(LOG_PATH))
 
