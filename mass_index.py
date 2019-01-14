@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
                 copy2(f, dst)
                 logger.info("{}: Copied {} to {}.".format(count, f, dst))
-                tries = 0
+                count_retries = 0
                 pbar.update(1)
         else:
             count_retries += 1
