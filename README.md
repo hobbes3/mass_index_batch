@@ -13,7 +13,7 @@ This Python script acts like a streaming server: It copies and maintains a limit
 2. Copy, edit, and rename `default_settings.py` to `settings.py`.
 3. Make sure you `batch` input (not `monitor`!) the same directory as `dst` in `settings.py`. Don't forget the required `move_policy=sinkhole` setting. For example, if your `settings.py` is
 
-```
+```python
 # From settings.py:
 DATA = [
     {
@@ -25,7 +25,7 @@ DATA = [
 
 then use something like
 
-```
+```yaml
 # For inputs.conf:
 [batch:///some/path/]
 index = foo
