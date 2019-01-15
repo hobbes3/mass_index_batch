@@ -66,3 +66,13 @@ Using the example above:
 | stats count values(src) by source
 | where count=1
 ```
+
+### Performance references
+Indexing tested on EC2 `c4.8xlarge` (36 vCPU, 30 GB memory):
+
+* GDELT dataset: Over 500k files (total around 400 GB), took almost 6 hours.
+* IRS 990 dataset: Over 2 million files (total around 160 GB), took about XX hours.
+
+### Thanks
+* Thanks to **Ali Okur** from Splunk Professional Services for coming up with the streaming/copying method and writing up a POC to test its viability.
+* Thanks to **Corey Marshall** for insisting on indexing the huge GDELT and IRS 990 datasets, which Splunk couldn't do on its own, and which eventually lead to this solution :-).
