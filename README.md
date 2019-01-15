@@ -5,13 +5,13 @@ The unofficial way to mass index MANY files to Splunk!
 You have thousands, if not, millions of files that you want to index to Splunk. You try traditional `monitor` and `batch` methods, but it crashes Splunk.
 
 ### How it works
-This Python script acts like a streaming server: It copies small number of files to a working directory, where Splunk can ingest the files via `batch` monitoring (and delete them when done). If the script detects either the maximum number of files have been reached for a while (ie Splunk down) or `SIGINT` (ie `ctrl-c`), then it'll save the remaining file list to a CSV and quit. See `settings.py` for configurable numbers. The script will resume from the saved file list CSV if it sees one (and deletes it when it's done).
+This Python script acts like a streaming server: It copies and maintains a limited number of files to a working directory, where Splunk can ingest the files via `batch` monitoring (and delete them afterwards). If the script can't complete because either the maximum number of files have been reached for a while (ie Splunk down) or `SIGINT` (ie `ctrl-c`), then it'll save the remaining file list to a CSV and quit. The script will resume from the CSV upon next run. See `settings.py` for configurable numbers. 
 
 ### Requirements
 
 1. Use Python 3 (tested on Python 3.7.0) and install `tqdm`.
 2. Copy, edit, and rename `settings.py.template` to `settings.py`.
-3. Make sure you `batch` monitor the same directory as `dst` in `settings.py`. Don't forget to set `move_policy = sinkhole`! For example if you're `settings.py` says
+3. Make sure you `batch` monitor the same directory as `dst` in `settings.py`. Don't forget to set `move_policy = sinkhole`! For example, if your `settings.py` is
 
 ```
 # From settings.py:
@@ -23,7 +23,7 @@ DATA = [
 ]
 ```
 
-Then, use something like
+then use something like
 
 ```
 # For inputs.conf:
@@ -34,7 +34,7 @@ move_policy = sinkhole
 ```
 
 4. Write your `props.conf` and `transforms.conf` rules if necessary.
-5. Run `./mass_index.py`. The output should look like this:
+5. Run `./mass_index.py`. The output should look like
 
 ```
 [splunk@my_machine mass_index]$ ./mass_index.py
@@ -44,7 +44,7 @@ Indexing files...
 ```
 
 ### How to read the `tqdm` progress bar
-Using the example above:
+Using the example right above:
 
 * `55%`: Percent completion rate.
 * `283097/515787`: 283097 files copied out of 515787 files.
@@ -70,7 +70,7 @@ Using the example above:
 ### Performance references
 Indexing tested on EC2 `c4.8xlarge` (36 vCPU, 30 GB memory):
 
-* [GDELT dataset](https://blog.gdeltproject.org/gdelt-2-0-our-global-world-in-realtime/): Over 500k files (total around 400 GB), took almost 6 hours. See [my script](https://github.com/hobbes3/gdelt/blob/master/bin/get_data.py) in my GDELT app on how I get the latest and historical GDELT data.
+* [GDELT dataset](https://blog.gdeltproject.org/gdelt-2-0-our-global-world-in-realtime/): Over 500k files (total around 400 GB), took about 6.3 hours. See [my script](https://github.com/hobbes3/gdelt/blob/master/bin/get_data.py) in my GDELT app on how I get the latest and historical GDELT data.
 * [IRS 990 dataset](https://docs.opendata.aws/irs-990/readme.html): Over 2.6 million files (total around 160 GB), took about XX hours.
 
 ### Thanks
