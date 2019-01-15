@@ -12,7 +12,7 @@ This Python script acts like a streaming server: It copies and maintains a limit
 1. Use Python 3 (tested on Python 3.7.0) and install `tqdm`.
 2. Copy, edit, and rename `default_settings.py` to `settings.py`.
 3. Make sure you `batch` input (not `monitor`!) the same directory as `dst` in `settings.py`. Don't forget the required `move_policy=sinkhole` setting. For example, if your `settings.py` is
-
+        
 ```python
 # From settings.py:
 DATA = [
@@ -23,7 +23,7 @@ DATA = [
 ]
 ```
 
-then use something like
+ then use something like
 
 ```yaml
 # For inputs.conf:
@@ -53,17 +53,26 @@ Using the example right above:
 * `29.69it/s`: About 29 files copied per second.
 
 ### Other considerations
-1. `indexes.conf`: You probably want to use `maxDataSize=auto_high_volume` if you're ingesting over 10 GB+ of data. Otherwise Splunk might complain about too many rolling buckets.
-2. `indexes.conf`: You might also want to raise `maxTotalDataSizeMB` (default 500 GB). Otherwise Splunk will delete any old buckets once the total index size reaches over 500 GB.
-3. You should probably run `tmux` or `screen` to keep your session alive and reattach after exiting, so you don't interrupt this script while it's running for hours.
-4. If you're not seeing the same number of files in Splunk after the script finishes, then check for files with 0 size and also double check your Splunk rules (`props.conf` and `tranforms.conf`). If your Splunk-fu and Vim-fu are good, then you can do something like `ls -lah > file_list_on_disk.txt` on the system, Vim edit the text file to a CSV, then in Splunk find the missing files by running something like:
+1. **Very important**: You probably want to temporary increase Splunk's open file limit of 100. This can be done under `limits.conf`:
+
+```yaml
+# limits.conf
+[inputproc]
+max_fd = 10000
+````
+ Also make sure the Linux user running Splunk has much higher default open files limit like 102400 (check via `ulimit -n`). You can raise this by editing `limits.conf` in Linux.
+
+2. `indexes.conf`: You probably want to use `maxDataSize=auto_high_volume` if you're ingesting over 10 GB+ of data. Otherwise Splunk might complain about too many rolling buckets.
+3. `indexes.conf`: You might also want to raise `maxTotalDataSizeMB` (default 500 GB). Otherwise Splunk will delete any old buckets once the total index size reaches over 500 GB.
+4. You should probably run `tmux` or `screen` to keep your session alive and reattach after exiting, so you don't interrupt this script while it's running for hours.
+5. If you're not seeing the same number of files in Splunk after the script finishes, then check for files with 0 size and also double check your Splunk rules (`props.conf` and `tranforms.conf`). If your Splunk-fu and Vim-fu are good, then you can do something like `ls -lah > file_list_on_disk.txt` on the system, Vim edit the text file to a CSV, then in Splunk find the missing files by running something like:
 
 ```
 | tstats count where index=foo sourcetype=bar by source
 | eval src="splunk"
 | inputlookup append=t file_list_on_disk.csv
 | eval src=coalesce(src, "disk")
-| stats count values(src) by source
+| stats count values(src) as src first(size) as size by source
 | where count=1
 ```
 
