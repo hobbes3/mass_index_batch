@@ -75,6 +75,13 @@ max_fd = 10000
 | stats count values(src) as src first(size) as size by source
 | where count=1
 ```
+6. `settings.py`: A good way to tune `LIMIT` and `SLEEP` is to observe lines in the custom log like
+```
+2019-01-15 07:21:32 [INFO   ] 1088: Total of 343 file(s) found.
+2019-01-15 07:21:32 [DEBUG  ] 1088: Try attempt #1.
+2019-01-15 07:21:32 [INFO   ] 1088: Copying over 657 file(s).
+```
+If the number (in this case, `657`) is constantly at or near `LIMIT`, then you may want to raise `LIMIT` even higher and/or lower the `SLEEP` numbers. If you're seeing too many try attempts without copying then increase the `SLEEP` numbers.
 
 ### Performance references
 Indexing tested on EC2 `c4.8xlarge` (36 vCPU, 30 GB memory):
