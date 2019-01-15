@@ -5,13 +5,12 @@ The unofficial way to mass index MANY files to Splunk!
 You have thousands, if not, millions of files that you want to index to Splunk. You try normal `monitor` and `batch` inputs, but it crashes Splunk or it's way too slow (like 1 file per second).
 
 ### How it works
-This Python script acts like a streaming server: It copies and maintains a limited number of files to a working directory, where Splunk can ingest the files via `batch` input (and delete them afterwards). If the script can't complete because either the maximum number of files have been reached for a while (ie Splunk down) or `SIGINT` (ie `ctrl-c`), then it'll save the remaining file list to a CSV and quit. The script will resume from the CSV upon next run. Delete the CSV manually if you want to start over. See [`settings.py`](https://github.com/hobbes3/mass_index/blob/master/default_settings.py) for configurations. 
+This Python script acts like a streaming server: It copies and maintains a limited number of files to a working directory, where Splunk can ingest the files via `batch` input (and delete them afterwards). If the script can't complete because either the maximum number of files have been reached for a while (ie Splunk down) or `SIGINT` was detected (ie `ctrl-c`), then it'll save the remaining file list to a CSV and quit. The script will resume from the CSV upon next run. Delete the CSV manually if you want to start over. See [`settings.py`](https://github.com/hobbes3/mass_index/blob/master/default_settings.py) for configuration settings. 
 
 ### Requirements
-
-1. Use Python 3 (tested on Python 3.7.0) and install `tqdm`.
+1. Use Python 3 (tested on Python 3.7.0) and install [`tqdm`](https://pypi.org/project/tqdm/).
 2. Copy, edit, and rename `default_settings.py` to `settings.py`.
-3. Make sure you `batch` input (not `monitor`!) the same directory as `dst` in `settings.py`. Don't forget the required `move_policy=sinkhole` setting. For example, if your `settings.py` is
+3. In Splunk, create `batch` inputs (not `monitor`!) for the same directories listed as `dst` in `settings.py`. Don't forget the required `move_policy=sinkhole` setting in `inputs.conf`. For example, if your `settings.py` is
         
 ```python
 # From settings.py:
@@ -23,7 +22,7 @@ DATA = [
 ]
 ```
 
- then use something like
+ then write something like
 
 ```yaml
 # For inputs.conf:
@@ -33,8 +32,9 @@ sourcetype = bar
 move_policy = sinkhole
 ```
 
-4. Write your `props.conf` and `transforms.conf` rules if necessary.
-5. Run `./mass_index.py`. The output should look like
+4. In Splunk, create your appropriate indexes and tune your instance appriopriately. See the [_Other considerations_](#other-considerations) section below. 
+5. In Splunk, create your `props.conf` and `transforms.conf` rules to index the files appriopriately if necessary.
+6. Run `./mass_index.py`. The output should look like
 
 ```
 [splunk@my_machine mass_index]$ ./mass_index.py
