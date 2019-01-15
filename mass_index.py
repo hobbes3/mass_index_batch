@@ -20,7 +20,7 @@ def signal_handler(sig, frame):
     if data:
         save_csv()
     logger.info("CANCELLED. Total elapsed seconds: {}.".format(time.time() - start_time))
-    sys.exit("Script cancelled. See logs at {}.".format(LOG_PATH))
+    sys.exit("Script cancelled. Incomplete file list saved. See logs at {}.".format(LOG_PATH))
 
 def load_csv():
     logger.info("Loading file list from {}.".format(SAVED_FILE_LIST_PATH))
@@ -30,6 +30,7 @@ def load_csv():
             data.append(r)
     
     logger.info("File list loaded (length={}).".format(len(data)))
+    print("Loaded saved file list at {}.".format(SAVED_FILE_LIST_PATH))
 
 def save_csv():
     logger.info("Saving remaining file list (length={}) as {}.".format(len(data), SAVED_FILE_LIST_PATH))
@@ -39,6 +40,10 @@ def save_csv():
         writer.writeheader()
         writer.writerows(data)
     csv_file.close()
+
+def delete_csv():
+    logger.info("DONE. Deleting {}.".format(SAVED_FILE_LIST_PATH))
+    os.remove(SAVED_FILE_LIST_PATH)
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -65,7 +70,6 @@ if __name__ == "__main__":
 
     if os.path.exists(SAVED_FILE_LIST_PATH):
         load_csv()
-        print("Loaded saved file list at {}.".format(SAVED_FILE_LIST_PATH))
 
     else:
         logger.info("Saved file list not found. Reading settings.py.")
@@ -91,7 +95,7 @@ if __name__ == "__main__":
     pbar = tqdm(total=total)
 
     count = 0
-    count_retries = 0
+    count_tries = 1
 
     while len(data) > 0:
         total_files = 0
@@ -105,34 +109,39 @@ if __name__ == "__main__":
         diff = LIMIT - total_files
         
         logger.info("{}: Total of {} file(s) found.".format(count, total_files))
+        logger.debug("{}: Try attempt #{}.".format(count, count_tries))
 
-        if diff > 0:
-            for i in range(diff):
+        if diff <= 0:
+            logger.debug("{}: LIMIT={} reached!".format(count, LIMIT))
+        else:
+            remaining = min(diff, len(data))
+            logger.info("{}: Copying over {} file(s).".format(count, remaining))
+            for i in range(remaining):
                 d = data.pop(0)
                 f = d["file"]
                 dst = d["dst"]
 
                 copy2(f, dst)
                 logger.info("{}: Copied {} to {}.".format(count, f, dst))
-                count_retries = 0
+                count_tries = 1
                 pbar.update(1)
-        else:
-            count_retries += 1
-            logger.debug("{}: LIMIT={} reached. Retry attempt #{}.".format(count, LIMIT, count_retries))
     
-        if count_retries > len(SLEEP):
-            logger.error("{}: No more retry attempts left.".format(count))
+        if count_tries + 1 > len(SLEEP):
+            logger.error("{}: No more try attempts left.".format(count))
             save_csv()
             logger.info("INCOMPLETE. Total elapsed seconds: {}.".format(time.time() - start_time))
-            sys.exit("No more retry attempts left. See logs at {}.".format(LOG_PATH))
+            sys.exit("No more try attempts left. Incomplete file list saved. See logs at {}.".format(LOG_PATH))
 
         count += 1
-        sleep = SLEEP[count_retries-1]
+        sleep = SLEEP[count_tries-1]
         logger.debug("{}: Sleeping for {} second(s).".format(count, sleep))
         time.sleep(sleep)
 
+        if diff <= 0:
+            count_tries += 1
+
     if os.path.exists(SAVED_FILE_LIST_PATH):
-        logger.info("DONE. Deleting {}.".format(SAVED_FILE_LIST_PATH))
-        os.remove(SAVED_FILE_LIST_PATH)
+        delete_csv()
 
     logger.info("DONE. Total elapsed seconds: {}.".format(time.time() - start_time))
+    print("Done!")
