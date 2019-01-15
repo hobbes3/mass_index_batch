@@ -2,7 +2,7 @@
 The unofficial way to mass index MANY files to Splunk!
 
 ### Use case
-You have thousands, if not, millions of files that you want to index to Splunk. You try normal `monitor` and `batch` inputs, but it crashes Splunk.
+You have thousands, if not, millions of files that you want to index to Splunk. You try normal `monitor` and `batch` inputs, but it crashes Splunk or it's way too slow (like 1 file per second).
 
 ### How it works
 This Python script acts like a streaming server: It copies and maintains a limited number of files to a working directory, where Splunk can ingest the files via `batch` input (and delete them afterwards). If the script can't complete because either the maximum number of files have been reached for a while (ie Splunk down) or `SIGINT` (ie `ctrl-c`), then it'll save the remaining file list to a CSV and quit. The script will resume from the CSV upon next run. See [`settings.py`](https://github.com/hobbes3/mass_index/blob/master/default_settings.py) for configurable numbers. 
@@ -81,7 +81,7 @@ max_fd = 10000
 2019-01-15 07:21:32 [DEBUG  ] 1088: Try attempt #1.
 2019-01-15 07:21:32 [INFO   ] 1088: Copying over 657 file(s).
 ```
-If the number (in this case, `657`) is constantly at or near `LIMIT`, then you may want to raise `LIMIT` even higher and/or lower the `SLEEP` numbers. If you're seeing too many try attempts without copying then increase the `SLEEP` numbers.
+If the number (in this case, `657`) is constantly at or near `LIMIT`, then you may want to raise `LIMIT` even higher and/or lower the `SLEEP` numbers. If you're seeing too many try attempts without copying, then increase the `SLEEP` numbers.
 
 ### Performance references
 Indexing tested on EC2 `c4.8xlarge` (36 vCPU, 30 GB memory):
