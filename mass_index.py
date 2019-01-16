@@ -73,6 +73,7 @@ if __name__ == "__main__":
 
     else:
         logger.info("Saved file list not found. Reading settings.py.")
+        logger.info("Creating file list...")
         for i, d in enumerate(DATA):
             src = d["src"]
             dst = d["dst"]
@@ -126,7 +127,7 @@ if __name__ == "__main__":
                 count_tries = 1
                 pbar.update(1)
     
-        if count_tries + 1 > len(SLEEP):
+        if count_tries > len(SLEEP):
             logger.error("{}: No more try attempts left.".format(count))
             save_csv()
             logger.info("INCOMPLETE. Total elapsed seconds: {}.".format(time.time() - start_time))
