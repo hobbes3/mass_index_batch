@@ -1,3 +1,6 @@
+# NO LONGER SUPPORTED
+I use HEC now instead of batch monitoring. See https://github.com/hobbes3/mass_index/.
+
 # mass_index.py
 The unofficial way to mass index MANY files to Splunk!
 
